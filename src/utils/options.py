@@ -39,5 +39,9 @@ def args_parser():
     parser.add_argument('--serial', action='store_true', help='partial serial running to save the gpu memory')
     parser.add_argument('--serial_bs', type=int, default=128, help='partial serial running batch size')
 
+    # misc
+    parser.add_argument('--random_seed', type=int, default=123, help='setting the random seed')
+    
+
     args = parser.parse_args()
     return args

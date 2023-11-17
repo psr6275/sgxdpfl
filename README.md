@@ -19,8 +19,14 @@ mkdir data
 ```
 
 ## Train DLFL (central setting)
+1. original code base
 ```bash
-python -u main_cdp.py --dataset mnist --dp-mechanism Gaussian --dp_epsilon 30 --dp_clip 10 --gpu 3 --dp-method cdp --num_users 10
+python -u main_cdp.py --dataset mnist --dp_mechanism Gaussian --dp_epsilon 30 --dp_clip 10 --gpu 3 --dp-method cdp --num_users 10
+```
+
+2. splitted dataset version
+```base
+python -u main_split.py --dataset mnist --dp_mechanism Gaussian --dp_epsilon 30 --dp_clip 10 --gpu 3 --dp-method cdp --num_users 10
 ```
 ## Parameters
 - refer to: https://github.com/wenzhu23333/Differential-Privacy-Based-Federated-Learning/blob/master/utils/options.py 

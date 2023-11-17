@@ -102,3 +102,24 @@ class CharLSTM(nn.Module):
         x, hidden = self.lstm(x)
         x = self.drop(x)
         return self.out(x[:, -1, :])
+
+def build_model(args, img_size):
+    # build model
+    net_glob = None
+    if args.model == 'cnn' and args.dataset == 'cifar':
+        net_glob = CNNCifar(args=args).to(args.device)
+    elif args.model == 'cnn' and (args.dataset == 'mnist' or args.dataset == 'fashion-mnist'):
+        net_glob = CNNMnist(args=args).to(args.device)
+    elif args.dataset == 'femnist' and args.model == 'cnn':
+        net_glob = CNNFemnist(args=args).to(args.device)
+    elif args.dataset == 'shakespeare' and args.model == 'lstm':
+        net_glob = CharLSTM().to(args.device)
+    elif args.model == 'mlp':
+        len_in = 1
+        for x in img_size:
+            len_in *= x
+        net_glob = MLP(dim_in=len_in, dim_hidden=64, dim_out=args.num_classes).to(args.device)
+    else:
+        exit('Error: unrecognized model')
+    
+    return net_glob

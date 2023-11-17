@@ -24,11 +24,12 @@ class DatasetSplit(Dataset):
 
 
 class LocalUpdateDP(object):
-    def __init__(self, args, dataset=None, idxs=None):
+    def __init__(self, args, sdataset=None):
         self.args = args
         self.loss_func = nn.CrossEntropyLoss()
+        idxs = sdataset.idxs
         self.idxs_sample = np.random.choice(list(idxs), int(self.args.dp_sample * len(idxs)), replace=False)
-        self.ldr_train = DataLoader(DatasetSplit(dataset, self.idxs_sample), batch_size=len(self.idxs_sample),
+        self.ldr_train = DataLoader(DatasetSplit(sdataset.dataset, self.idxs_sample), batch_size=len(self.idxs_sample),
                                     shuffle=True)
         self.idxs = idxs
         self.times = self.args.epochs * self.args.frac
@@ -112,9 +113,9 @@ class LocalUpdateDP(object):
 
 
 class LocalUpdateDPSerial(LocalUpdateDP):
-    def __init__(self, args, dataset=None, idxs=None):
-        super().__init__(args, dataset, idxs)
-
+    def __init__(self, args, sdataset=None):
+        super().__init__(args, sdataset)
+        
     def train(self, net):
         net.train()
         # train and update
@@ -154,8 +155,8 @@ class LocalUpdateDPSerial(LocalUpdateDP):
         return net.state_dict(), losses / len(self.idxs_sample)
 
 class LocalUpdateCDP(LocalUpdateDP):
-    def __init__(self, args, dataset=None, idxs=None):
-        super().__init__(args, dataset, idxs)
+    def __init__(self, args, sdataset=None):
+        super().__init__(args, sdataset)
 
     def train(self, net):
         net.train()
@@ -179,4 +180,4 @@ class LocalUpdateCDP(LocalUpdateDP):
         self.lr = scheduler.get_last_lr()[0]
         return net.state_dict(), loss_client
 
-class LocalUpdateDPNew
+
