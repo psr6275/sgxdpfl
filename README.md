@@ -17,6 +17,11 @@ pip install -r requirements.txt
 ```bash
 mkdir data
 ```
+
+## Train DLFL (central setting)
+```bash
+python -u main_cdp.py --dataset mnist --dp-mechanism Gaussian --dp_epsilon 30 --dp_clip 10 --gpu 3 --dp-method cdp --num_users 10
+```
 ## Parameters
 - refer to: https://github.com/wenzhu23333/Differential-Privacy-Based-Federated-Learning/blob/master/utils/options.py 
 1. frac: the fraction of clients (in our case, we need to use frac =1.0 because we consider cross silo scenario)
