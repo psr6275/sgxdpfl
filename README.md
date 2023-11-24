@@ -38,3 +38,6 @@ python -u main_split.py --dataset mnist --dp_mechanism Gaussian --dp_epsilon 30 
 - https://github.com/Yangfan-Jiang/Federated-Learning-with-Differential-Privacy 
 - https://github.com/wenzhu23333/Differential-Privacy-Based-Federated-Learning/tree/master 
 - https://github.com/maxencenoble/Differential-Privacy-for-Heterogeneous-Federated-Learning/tree/main/flearn 
+2. cross-silo FL
+- Private Federated Learning Without a Trusted Server: Optimal Algorithms for Convex Losses: https://github.com/lowya/Private-Federated-Learning-Without-a-Trusted-Server
+- On Privacy and Personalization in Cross-Silo Federated Learning: https://github.com/kenziyuliu/private-cross-silo-fl 
