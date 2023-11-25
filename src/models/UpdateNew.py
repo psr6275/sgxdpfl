@@ -78,7 +78,10 @@ class LocalUpdateDP(object):
             self.per_sample_clip(net, self.args.dp_clip, norm=2)
 
     def per_sample_clip(self, net, clipping, norm):
-        grad_samples = [x.grad_sample for x in net.parameters()]
+        grad_samples = [x.grad_sample for x in net.parameters()]                
+        # for p in net.parameters():
+        #     print(p)
+        #     print(p.grad_sample)
         per_param_norms = [
             g.reshape(len(g), -1).norm(norm, dim=-1) for g in grad_samples
         ]

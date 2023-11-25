@@ -23,16 +23,16 @@ from typing import Iterable, List, Tuple
 import torch
 import torch.nn as nn
 
-from gsm_base import AbstractGradSampleModule
-from module_utils import (
+from .gsm_base import AbstractGradSampleModule
+from .module_utils import (
     has_trainable_params,
     requires_grad,
     trainable_modules,
     trainable_parameters,
 )
-from dp_rnn import DPGRU, DPLSTM, DPRNN, RNNLinear
+from .dp_rnn import DPGRU, DPLSTM, DPRNN, RNNLinear
 
-from module_utils import ft_compute_per_sample_gradient, prepare_layer
+from .module_utils import ft_compute_per_sample_gradient, prepare_layer
 # from opacus.grad_sample.functorch import ft_compute_per_sample_gradient, prepare_layer
 
 
@@ -130,6 +130,9 @@ class GradSampleModule(AbstractGradSampleModule):
             loss_reduction=loss_reduction,
         )
 
+        # for pn,p in trainable_parameters(self._module):
+        #     print("PN: %s counter %s"%(pn,p._forward_counter))
+
         errors = self.validate(module=m, strict=strict)
         if errors and not strict:
             logger.info(
@@ -138,7 +141,6 @@ class GradSampleModule(AbstractGradSampleModule):
             )
 
         self.hooks_enabled = False
-        self.grad_accumulation_allowed = True
         self.batch_first = batch_first
         self.loss_reduction = loss_reduction
         self.force_functorch = force_functorch
@@ -153,6 +155,7 @@ class GradSampleModule(AbstractGradSampleModule):
 
     def iterate_submodules(self, module: nn.Module) -> Iterable[nn.Module]:
         if has_trainable_params(module):
+            # print("has trainable params: ", module)
             yield module
 
         # Don't recurse if module is handled by functorch
@@ -197,20 +200,25 @@ class GradSampleModule(AbstractGradSampleModule):
             self._module.autograd_grad_sample_hooks = []
             self.autograd_grad_sample_hooks = self._module.autograd_grad_sample_hooks
 
+        
+
         for module in self.iterate_submodules(self._module):
             # Do not add hooks to DPRNN, DPLSTM or DPGRU as the hooks are handled by the `RNNLinear`
             if type(module) in [DPRNN, DPLSTM, DPGRU]:
                 continue
-
+            
+            # for pn, p in trainable_parameters(module):
+            #     print("pn: %s count %s"%(pn, p._forward_counter))
             if force_functorch or not type(module) in self.GRAD_SAMPLERS:
                 prepare_layer(module, batch_first=batch_first)
-
+            # print("print model: ",module)
             self.autograd_grad_sample_hooks.append(
                 module.register_forward_hook(self.capture_activations_hook)
             )
 
             self.autograd_grad_sample_hooks.append(
-                module.register_backward_hook(
+                # module.register_backward_hook(
+                module.register_full_backward_hook(
                     partial(
                         self.capture_backprops_hook,
                         loss_reduction=loss_reduction,
@@ -218,6 +226,8 @@ class GradSampleModule(AbstractGradSampleModule):
                     )
                 )
             )
+            # for pn, p in trainable_parameters(module):
+            #     print("pn: %s count %s"%(pn, p._forward_counter))
 
         self.enable_hooks()
 
@@ -287,10 +297,10 @@ class GradSampleModule(AbstractGradSampleModule):
         if not hasattr(module, "activations"):
             module.activations = []
         module.activations.append([t.detach() for t in forward_input])  # pyre-ignore
-
-        for _, p in trainable_parameters(module):
+        # print(module)
+        for pn, p in trainable_parameters(module):                    
             p._forward_counter += 1
-
+            
     def capture_backprops_hook(
         self,
         module: nn.Module,
@@ -351,14 +361,6 @@ class GradSampleModule(AbstractGradSampleModule):
             p._forward_counter -= 1
             if p._forward_counter == 0:
                 promote_current_grad_sample(p)
-
-            if not self.grad_accumulation_allowed:
-                if isinstance(p.grad_sample, list) and len(p.grad_sample) > 1:
-                    raise ValueError(
-                        "Poisson sampling is not compatible with grad accumulation. "
-                        "You need to call optimizer.step() after every forward/backward pass "
-                        "or consider using BatchMemoryManager"
-                    )
 
         if len(module.activations) == 0:
             if hasattr(module, "max_batch_len"):
@@ -486,12 +488,6 @@ class GradSampleModule(AbstractGradSampleModule):
         else:
             return errors
 
-    def forbid_grad_accumulation(self):
-        self.grad_accumulation_allowed = False
-
-    def allow_grad_accumulation(self):
-        self.grad_accumulation_allowed = True
-
 
 def _get_batch_size(*, module: nn.Module, batch_dim: int) -> int:
     """
@@ -515,4 +511,3 @@ def _get_batch_size(*, module: nn.Module, batch_dim: int) -> int:
             max_batch_len = out[-1].shape[batch_dim]
 
     return max_batch_len
-

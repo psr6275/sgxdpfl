@@ -6,7 +6,7 @@ from torch.utils.hooks import RemovableHandle
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from module_utils import trainable_parameters
+from .module_utils import trainable_parameters
 
 logger = logging.getLogger(__name__)
 OPACUS_PARAM_MONKEYPATCH_ATTRS = ["_forward_counter", "_current_grad_sample"]
@@ -45,8 +45,10 @@ class AbstractGradSampleModule(nn.Module, ABC):
         self.batch_first = batch_first
         self.loss_reduction = loss_reduction
         self.grad_accumulation_hook: Optional[RemovableHandle] = None
-
-        for _, p in trainable_parameters(self):
+        # print(trainable_parameters(self))
+        for pn, p in trainable_parameters(self):
+            # print("pn: ",pn)
+            # print("p:", p.shape)
             p.grad_sample = None
             p._forward_counter = 0
 

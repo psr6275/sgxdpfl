@@ -21,8 +21,8 @@ from models.Fed import FedAvg, FedWeightAvg, FedWeightAvgCDP
 from models.test import test_img
 from utils.dataset import FEMNIST, ShakeSpeare
 from utils.dp_mechanism import cal_sensitivity, cal_sensitivity_MA, calculate_noise_scale_cdp
-from opacus.grad_sample import GradSampleModule
-
+from utils.gradient_utils import GradSampleModule
+# from opacus.grad_sample import GradSampleModule
 
 if __name__ == '__main__':
     args = args_parser()
@@ -71,20 +71,26 @@ if __name__ == '__main__':
     acc_test = []
     # However, we will consider frac = 1 for cross-silo setting!
     m, loop_index = max(int(args.frac * args.num_users), 1), int(1 / args.frac)
+    
     for iter in range(args.epochs):
         t_start = time.time()
         w_locals, loss_locals, weight_locols = [], [], []
         # round-robin selection (in our basic scenario, we will ignore client selection!!)
         begin_index = (iter % loop_index) * m
         end_index = begin_index + m
-        idxs_users = all_clients[begin_index:end_index]
+        idxs_users = all_clients[begin_index:end_index]        
         for idx in idxs_users:
-            local = clients[idx]
+            local = clients[idx]            
+            net_local = GradSampleModule(build_model(args, img_size))
+            net_local.load_state_dict(copy.deepcopy(net_glob.state_dict()))
             # this deep copy part will require communication from server to clients (for broadcasting)!
-            w, loss = local.train(net=copy.deepcopy(net_glob).to(args.device))
+            # w, loss = local.train(net=copy.deepcopy(net_glob).to(args.device))
+            w, loss = local.train(net=net_local.to(args.device))
             w_locals.append(copy.deepcopy(w))
             loss_locals.append(copy.deepcopy(loss))
             weight_locols.append(len(dict_users[idx]))
+            del net_local
+            torch.cuda.empty_cache()
 
         # update global weights
         if args.dp_method != 'cdp':
